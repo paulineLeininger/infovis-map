@@ -4,17 +4,104 @@
 <title>InfoVis Map</title>
 <meta charset="utf-8">
 <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.1.1/css/bootstrap-slider.min.css">
+        <link rel="stylesheet" href="slider.css">
+        <script src="https://d3js.org/d3.v3.min.js"></script>
+		<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.5/angular.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.1.1/bootstrap-slider.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+		<script src="slider.js"></script>
+<script>
+     class MyDropDown extends HTMLElement {
+             constructor () {
+                 super();
+             }
+
+             connectedCallback() {
+             }
+
+             attributeChangedCallback (attr, oldVal, newVal) {
+                 /* console.log("mydropdown.attr", attr); */
+                 /* this.dispatchEvent(new CustomEvent('update-term', {bubbles: true, detail: {oldVal: oldVal, newVal: newVal}}), true); */
+             }
+
+             static get observedAttributes() {
+                 return ['value'];
+             }
+
+             get _selectedIndex() {
+                 return this.children[0].options.selectedIndex
+             }
+
+             get val() {
+                 return this.children[0].options[this._selectedIndex].getAttribute('value');
+             }
+         }
+      customElements.define('my-dropdown', MyDropDown);
+
+      function update() {
+             console.log('update');
+             const mydropdown = document.getElementById('mydropdown');
+             //mydropdown.setAttribute('value', mydropdown.val);
+             //const xajax = document.getElementById('x-ajax');
+             //xajax.setAttribute('url', `https://raw.githubusercontent.com/mimuc/omm-ws1920/master/assignments/04-webcomponents/assignment-statistics-api/${mydropdown.val}.json`);
+             /* xajax.setTerm(mydropdown.val); */
+         }
+
+</script>
 </head>
 <body>
 <div id="newspaper">
 <div id="header">
-<h1>2020 News</h1>
-<p>Zeitungsmeldungen aus einem verrückten Jahr</p>
+<div><h1>2020 News</h1></div>
+<h1>
+    
+</h1>
+<div><p>Zeitungsmeldungen aus einem verrückten Jahr</p></div>
 </div><!--Header Ende-->
 <div id="content-wrapper">
 <div id="left">
-<div id="dropdown"><button>Dies ist ein Platzhalter für das Dropdownmenü</button></div>
-<div id="graph"><img src="img/graph-placeholder.png" /></div>
+<div id="dropdown">
+    <my-dropdown value="ws1920" id="mydropdown">
+    <select id="sel" onchange="update()">
+        <option value="nachrichten-auswaehlen">- Nachrichten auswählen -</option>
+        <option value="bill-gates">Bill Gates</option>
+        <option value="klopapier">Klopapier</option>
+        <option value="lockdown">Lockdown</option>
+        <option value="spacex">Space X</option>
+        <option value="corona">Corona</option>
+        <option value="zoom">Zoom</option>
+        <option value="querdenken">Querdenken</option>
+        <option value="maske">Maske</option>
+        <option value="alkohol">Alkohol</option>
+        <option value="drosten">Drosten</option>
+        <option value="homeworkout">Home Workout</option>
+        <option value="bananenbrot">Bananenbrot</option>
+    </select>
+</my-dropdown>
+</div>
+
+
+
+<div class="timelapse-container">
+    <div class="timelapse" id="graph"> 
+    </div>
+    <div class="time-slider-container">
+      <h3 class="time-slider-display">2020.1</h3>
+      <input id="time-slider" type="text">
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
 <div id="articleview">
 <h2>Deutsche hamstern Klopapier</h2>
 <p>25.04.2020 - Süddeutsche Zeitung - Klopapier, Corona</p>
@@ -27,8 +114,146 @@
 <p>Lorem Ipsum Dolor Sit Quantum amat</p>
 </div>
 </div><!--left Ende-->
+
 <div id="right">
-<div id="map"><div id="tempcenter"><img src="img/map-placeholder.png" /></div></div>
+<div id="map"><div class="tempcenter">
+
+    <script>
+        var width = 500,
+            height = 460,
+            focused = null,
+            geoPath;
+        
+        var svg = d3.select(".tempcenter")
+          .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("align","center");
+        
+        svg.append("rect")
+            .attr("class", "background")
+            .attr("width", width)
+            .attr("height", height);
+        
+        var g = svg.append("g")
+          .append("g")
+            .attr("id", "states");
+        
+        
+        d3.json("https://raw.githubusercontent.com/isellsoap/deutschlandGeoJSON/master/2_bundeslaender/1_sehr_hoch.geo.json", function(collection) {
+        
+          var bounds = d3.geo.bounds(collection),
+              bottomLeft = bounds[0],
+              topRight = bounds[1],
+              rotLong = -(topRight[0]+bottomLeft[0])/2;
+              center = [(topRight[0]+bottomLeft[0])/2+rotLong, (topRight[1]+bottomLeft[1])/2],
+              
+              //default scale projection
+              projection = d3.geo.albers()
+                .parallels([bottomLeft[1],topRight[1]])
+                .rotate([rotLong,0,0])
+                .translate([width/2,height/2])
+                .center(center),
+                
+              bottomLeftPx = projection(bottomLeft),
+              topRightPx = projection(topRight),
+              scaleFactor = 1.00*Math.min(width/(topRightPx[0]-bottomLeftPx[0]), height/(-topRightPx[1]+bottomLeftPx[1])),
+              
+              projection = d3.geo.albers()
+                .parallels([bottomLeft[1],topRight[1]])
+                .rotate([rotLong,0,0])
+                .translate([width/2,height/2])
+                .scale(scaleFactor*0.975*1000)
+                //.scale(4*1000)  //1000 is default for USA map
+                .center(center);
+        
+          geoPath = d3.geo.path().projection(projection);
+            
+          var graticule = d3.geo.graticule()
+              .step([1, 1]);
+        
+         /* g.append("path")
+              .datum(graticule)
+             .attr("class", "graticuleLine")
+              .attr("d", geoPath);*/
+          
+          g.selectAll("path.feature")
+              .data(collection.features)
+              .enter()
+            .append("path")
+              .attr("class", "feature")
+              .attr("d", geoPath)
+              .on("click", clickPath);
+        
+          console.log("d3.json: bounds = "+bounds);
+          console.log("d3.json: bottomLeft = "+bottomLeft);
+          console.log("d3.json: topRight = "+topRight);
+          console.log("d3.json: center = "+center);
+          console.log("d3.json: projection(center) = "+projection(center));
+          console.log("d3.json: projection(bottomLeft) = "+projection(bottomLeft));
+          console.log("d3.json: projection(topRight) = "+projection(topRight));
+          console.log("d3.json: topRightPx = "+topRightPx);
+          console.log("d3.json: bottomLeftPx = "+bottomLeftPx);
+          console.log("d3.json: scaleFactor x axis = "+width/(topRightPx[0]-bottomLeftPx[0]));
+          console.log("d3.json: scaleFactor y axis = "+height/(-topRightPx[1]+bottomLeftPx[1]));  
+          console.log("d3.json: scaleFactor = "+scaleFactor);
+        });
+        
+        
+        function clickPath(d) {
+          var x = width/2,
+              y = height/2,
+              k = 1,
+              name = d.properties.NAME_1;
+        
+          g.selectAll("text")
+            .remove();
+          if ((focused === null) || !(focused === d)) {
+            var centroid = geoPath.centroid(d),
+                x = +centroid[0],
+                y = +centroid[1],
+                k = 1.75;
+            focused = d;
+            
+            g.append("text")
+              .text(name)
+              .attr("x", x)
+              .attr("y", y)
+              .style("text-anchor","middle")
+              .style("font-size","8px")
+              .style("stroke-width","0px")
+              .style("fill","black")
+              .style("font-family","Times New Roman")
+              .on("click", clickText);
+          } else {
+            focused = null;
+          };
+        
+          g.selectAll("path")
+              .classed("active", focused && function(d) { return d === focused; });
+         
+          g.transition()
+              .duration(1000)
+              .attr("transform", "translate("+ (width/2) +","+ (height/2) +")scale("+ k +")translate("+ (-x) +","+ (-y) +")")
+              .style("stroke-width", 1.75/k +"px");
+        }
+        
+        
+        function clickText(d) {
+          focused = null;
+          g.selectAll("text")
+              .remove();
+          g.selectAll("path")
+              .classed("active", 0);
+          g.transition()
+              .duration(1000)
+              .attr("transform", "scale("+1+")translate("+0+","+0+")")
+              .style("stroke-width", 1.00+"px");
+        }
+        </script>
+
+
+</div></div>
 <div id="funnytexts">
 <p>Die Leute in Baden-Wüttenberg finden Klopapier am coolsten.</p>
 <p>Mecklenburg-Vorpommern will nichts davon wissen</p>
@@ -40,5 +265,6 @@
 </div><!--right Ende-->
 </div>
 </div><!--Newspaper Ende-->
+<script src="timeslider.js"></script>
 </body>
 </html>
